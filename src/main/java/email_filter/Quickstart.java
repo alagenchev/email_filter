@@ -15,11 +15,14 @@ import com.google.api.client.util.store.FileDataStoreFactory;
 
 import com.google.api.services.gmail.GmailScopes;
 import com.google.api.services.gmail.model.*;
+import com.google.api.services.gmail.model.Thread;
 import com.google.api.services.gmail.Gmail;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -44,9 +47,9 @@ public class Quickstart {
 	 * Global instance of the scopes required by this quickstart.
 	 *
 	 * If modifying these scopes, delete your previously saved credentials at
-	 * ~/.credentials/gmail-java-quickstart
+	 * rm -rf ~/.credentials/gmail-java-quickstart
 	 */
-	private static final List<String> SCOPES = Arrays.asList(GmailScopes.GMAIL_READONLY);
+	private static final List<String> SCOPES = Arrays.asList(GmailScopes.GMAIL_MODIFY);
 
 	static {
 		try {
@@ -88,38 +91,78 @@ public class Quickstart {
 		return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential).setApplicationName(APPLICATION_NAME).build();
 	}
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, InterruptedException {
+		
+		
+		
 		// Build a new authorized API client service.
 		Gmail service = getGmailService();
 
 		// Print the labels in the user's account.
 		String user = "me";
+		
+		ListLabelsResponse labelsResponse = service.users().labels().list(user).execute();
+		List<Label> labels = labelsResponse.getLabels();
+		
+		for(Label label: labels) {
+			String name = label.getName();
+			
+			if(name.equals("auto_filtered")) {
+				System.out.println("label id: " + label.getId());
+			}
+		}
+		while(true) {
+
+			
 		ListMessagesResponse listResponse = service.users().messages().list(user)
-				.setQ("subject:FNHW Rush Dispatch Offer").execute();
+				.setQ("has:nouserlabels is:unread subject:FNHW Rush Dispatch Offer").execute();
+		
 		List<Message> messages = listResponse.getMessages();
-		if (messages.size() == 0) {
-			System.out.println("No labels found.");
+		if (messages == null || messages.size() == 0) {
+			System.out.println("No emails found.");
 		} else {
-			System.out.println("Labels:");
-			for (Message message : messages) {
-				Message fullMessage = service.users().messages().get(user, message.getId()).execute();
+			processMessages(service, user, messages);
+		}
+		
+		java.lang.Thread.sleep(3000);
+		}
+	}
 
-				List<MessagePart> messageParts = fullMessage.getPayload().getParts();
+	private static void processMessages(Gmail service, String user, List<Message> messages) throws IOException {
+		System.out.println("emails:");
+		for (Message message : messages) {
+			Message fullMessage = service.users().messages().get(user, message.getId()).execute();
 
-				for (MessagePart part : messageParts) {
+//				BigInteger historyId = fullMessage.getHistoryId();
+//				
+//			    List<History> histories = new ArrayList<History>();
+//			    ListHistoryResponse response = service.users().history().list(user)
+//			        .setStartHistoryId(historyId).execute();
+//			    
+//			    histories.addAll(response.getHistory());
+			
+			List<MessagePart> messageParts = fullMessage.getPayload().getParts();
 
-					String mimeType = part.getMimeType();
+			for (MessagePart part : messageParts) {
 
-					if (mimeType.equals("text/html")) {
+				String mimeType = part.getMimeType();
 
-						String body = part.getBody().getData();
-						byte[] decodedBody = Base64.decodeBase64(body);
-						String decoded1 = StringUtils.newStringUtf8(decodedBody);
-						String acceptLink = MessageParser.getAcceptLink(decoded1);
-						System.out.printf("- %s\n", decoded1);
-					}
+				if (mimeType.equals("text/html")) {
+
+					String body = part.getBody().getData();
+					byte[] decodedBody = Base64.decodeBase64(body);
+					String decoded1 = StringUtils.newStringUtf8(decodedBody);
+					String acceptLink = MessageParser.getAcceptLink(decoded1);
+					System.out.printf("- %s\n", decoded1);
+					System.out.println("accept link: " + acceptLink);
 				}
 			}
+			
+			List<String> labelIds = new ArrayList<>();
+			labelIds.add("Label_27");
+			ModifyMessageRequest mods = new ModifyMessageRequest().setAddLabelIds(labelIds);
+			    service.users().messages().modify(user, message.getId(), mods).execute();
+
 		}
 	}
 
