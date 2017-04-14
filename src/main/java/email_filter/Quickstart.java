@@ -131,7 +131,13 @@ public class Quickstart {
 	private static void processMessages(Gmail service, String user, List<Message> messages) throws IOException {
 		System.out.println("emails:");
 		for (Message message : messages) {
-			Message fullMessage = service.users().messages().get(user, message.getId()).execute();
+			processMessage(service, user, message);
+
+		}
+	}
+
+	private static void processMessage(Gmail service, String user, Message message) throws IOException {
+		Message fullMessage = getFullMessage(service, user, message);
 
 //				BigInteger historyId = fullMessage.getHistoryId();
 //				
@@ -140,30 +146,49 @@ public class Quickstart {
 //			        .setStartHistoryId(historyId).execute();
 //			    
 //			    histories.addAll(response.getHistory());
-			
-			List<MessagePart> messageParts = fullMessage.getPayload().getParts();
+		
 
-			for (MessagePart part : messageParts) {
+		String body = getHTMLBodyPart(fullMessage);
+		
 
-				String mimeType = part.getMimeType();
+		String acceptLink = MessageParser.getAcceptLink(body);
 
-				if (mimeType.equals("text/html")) {
+		Navigator.navigate(acceptLink);
+		
+		markEmailAsProcessed(service, user, message);
+	}
 
-					String body = part.getBody().getData();
-					byte[] decodedBody = Base64.decodeBase64(body);
-					String decoded1 = StringUtils.newStringUtf8(decodedBody);
-					String acceptLink = MessageParser.getAcceptLink(decoded1);
-					System.out.printf("- %s\n", decoded1);
-					System.out.println("accept link: " + acceptLink);
-				}
+	private static Message getFullMessage(Gmail service, String user, Message message) throws IOException {
+		return service.users().messages().get(user, message.getId()).execute();
+	}
+
+	private static void markEmailAsProcessed(Gmail service, String user, Message message) throws IOException {
+		List<String> labelIds = new ArrayList<>();
+		labelIds.add("Label_27");
+		ModifyMessageRequest mods = new ModifyMessageRequest().setAddLabelIds(labelIds);
+		    service.users().messages().modify(user, message.getId(), mods).execute();
+	}
+	
+	private static String getHTMLBodyPart(Message fullMessage) {
+		
+		String body = "";
+		List<MessagePart> messageParts = fullMessage.getPayload().getParts();
+
+		for (MessagePart part : messageParts) {
+
+			String mimeType = part.getMimeType();
+
+			if (mimeType.equals("text/html")) {
+
+				String encodedBody = part.getBody().getData();
+				
+				byte[] byteDecodedBody = Base64.decodeBase64(encodedBody);
+				body = StringUtils.newStringUtf8(byteDecodedBody);
+
 			}
-			
-			List<String> labelIds = new ArrayList<>();
-			labelIds.add("Label_27");
-			ModifyMessageRequest mods = new ModifyMessageRequest().setAddLabelIds(labelIds);
-			    service.users().messages().modify(user, message.getId(), mods).execute();
-
 		}
+		
+		return body;
 	}
 
 }
