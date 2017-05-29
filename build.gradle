@@ -15,5 +15,12 @@ dependencies {
     compile 'com.google.api-client:google-api-client:1.22.0'
     compile 'com.google.oauth-client:google-oauth-client-jetty:1.22.0'
     compile 'com.google.apis:google-api-services-gmail:v1-rev63-1.22.0'
+
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.0.13'
+
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.0'
+    compileOnly "org.projectlombok:lombok:1.16.16"
+
+
     testCompile 'junit:junit:4.12'
 }

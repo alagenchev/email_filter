@@ -5,14 +5,16 @@ import java.io.IOException;
 import org.junit.Test;
 
 public class NavigatorTests {
-	
-	//@Test
+
+	// @Test
 	public void navigateHttpsTest() throws IOException {
-		Navigator.navigate("https://fnhw.com/swobid/BidForm.aspx?v=18747&s=5804195&o=322270&a=1");
+		final Navigator navigator = new Navigator();
+		navigator.navigate("https://fnhw.com/swobid/BidForm.aspx?v=18747&s=5804195&o=322270&a=1");
 	}
-	
+
 	@Test
 	public void navigateHttpTest() throws IOException {
-		Navigator.navigate("http://fnhw.com/swobid/BidForm.aspx?v=18747&s=5804195&o=322270&a=1");
+		final Navigator navigator = new Navigator();
+		navigator.navigate("http://fnhw.com/swobid/BidForm.aspx?v=18747&s=5804195&o=322270&a=1");
 	}
 }
